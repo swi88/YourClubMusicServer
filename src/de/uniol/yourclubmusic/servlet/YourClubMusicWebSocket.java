@@ -17,8 +17,8 @@ public class YourClubMusicWebSocket {
 	 @OnWebSocketConnect
 	    public void onConnect(Session session){
 		 	this.session=session;
-	        System.out.println("MyWebSocket.onConnect()"+ session.getRemoteAddress().getHostName());
-	        YourClubMusicManager.getInstance().registerClient(this);
+	        System.out.println(session.getRemoteAddress().getHostName()+" connected");
+	        YourClubMusicManager.getInstance().clientConnected(this);
 	    }
 
 	    @OnWebSocketMessage
@@ -28,7 +28,7 @@ public class YourClubMusicWebSocket {
 	    
 	    @OnWebSocketClose
 	    public void onClose(int statusCode, String reason) {
-	        System.out.println("MyWebSocket.onClose()"+reason);
+	        System.out.println(session.getRemoteAddress().getHostName()+" disconnected, because:"+reason);
 	        YourClubMusicManager.getInstance().unregisterClient(this);
 	    } 	    
 	    public void sendText(String msg){
@@ -38,4 +38,8 @@ public class YourClubMusicWebSocket {
 				e.printStackTrace();
 			}
 	    }
+
+		public String getHostname() {
+			return session.getRemoteAddress().getHostName();
+		}
 }
