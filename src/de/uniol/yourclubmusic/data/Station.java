@@ -18,14 +18,16 @@ public class Station {
 	double latitude;
 	double longitude;
 	boolean isPublic;
+	int neighbourhoodMeter;
 	/**
 	 * create a new station
 	 * @param name name of the station
 	 * @param latitude lat
 	 * @param longitude lon
 	 * @param isPublic is shown in the list of the client
+	 * @param neighbourhoodMeter radius, there the station is available
 	 */
-	public Station(String name,double latitude,double longitude,boolean isPublic) {
+	public Station(String name,double latitude,double longitude,boolean isPublic,int neighbourhoodMeter) {
 		genres= new HashMap<>();
 		mapClientGenre= new HashMap<>();
 		totalVotes=0;
@@ -33,6 +35,7 @@ public class Station {
 		this.latitude=latitude;
 		this.longitude=longitude;
 		this.name=name;
+		this.neighbourhoodMeter=neighbourhoodMeter;
 	}
 	public String getName(){
 		return name;
@@ -54,13 +57,18 @@ public class Station {
 		}
 	}
 	public synchronized void unregisterClient(YourClubMusicWebSocket socket){
-		for (String genre : mapClientGenre.get(socket)) {
-			Genre g=genres.get(genre);
-			g.decrementVotings();
-			if(g.getVotings()==0) genres.remove(genre);
-			
+		//allready unregistered (from neighborhood kickout)
+		if(!mapClientGenre.containsKey(socket)) return;
+		if(!mapClientGenre.get(socket).isEmpty()){
+			for (String genre : mapClientGenre.get(socket)) {
+				Genre g=genres.get(genre);
+				g.decrementVotings();
+				if(g.getVotings()==0) genres.remove(genre);
+				
+			}
 		}
 		mapClientGenre.remove(socket);
+		socket.disconnect(1000, "Club verlassen");
 		updateClients();
 		
 	}
@@ -81,12 +89,9 @@ public class Station {
 
 	private synchronized void receiveLocation(YourClubMusicWebSocket socket,
 			JsonValue jsonLocation) {
-		double latitude=jsonLocation.asArray().get(0).asObject().get("latitude").asDouble();
-		double longitude=jsonLocation.asArray().get(1).asObject().get("longitude").asDouble();
-		System.out.println(latitude+" "+longitude);
-		
-		
-	updateClients();
+		if(!isNeighbourhood(jsonLocation)){
+			unregisterClient(socket);
+		}
 		
 	}
 	private synchronized void receiveGenres(YourClubMusicWebSocket socket, JsonValue jsonGenres) {
@@ -134,5 +139,24 @@ public class Station {
 		for (YourClubMusicWebSocket socket :mapClientGenre.keySet()) {
 			socket.sendText(object.toString());
 		}
+	}
+	private static final int earthRadius = 6371;
+	public boolean isNeighbourhood(JsonValue jsonLocation) {
+			double latNew=jsonLocation.asArray().get(0).asObject().get("latitude").asDouble();
+			double lonNew=jsonLocation.asArray().get(1).asObject().get("longitude").asDouble();
+			//for clients who don't allow network/GPS locations
+			if(latNew==0 && lonNew==0){
+				return true;
+			}
+				
+		    double dLat = (float) Math.toRadians(latNew - latitude);
+		    double dLon = (float) Math.toRadians(lonNew - longitude);
+		    double a =(double) (Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(Math.toRadians(latitude))
+		                        * Math.cos(Math.toRadians(latNew)) * Math.sin(dLon / 2) * Math.sin(dLon / 2));
+		    double c = (double) (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+		    double d = earthRadius * c;
+		    d*=1000;
+		    System.out.println(d);
+		    return d<=neighbourhoodMeter?true:false;
 	}
 }

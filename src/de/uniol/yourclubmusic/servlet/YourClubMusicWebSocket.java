@@ -18,7 +18,6 @@ public class YourClubMusicWebSocket {
 	    public void onConnect(Session session){
 		 	this.session=session;
 	        System.out.println(session.getRemoteAddress().getHostName()+" connected");
-	        YourClubMusicManager.getInstance().clientConnected(this);
 	    }
 
 	    @OnWebSocketMessage
@@ -42,4 +41,9 @@ public class YourClubMusicWebSocket {
 		public String getHostname() {
 			return session.getRemoteAddress().getHostName();
 		}
+		
+		public void disconnect(int code,String reason){
+			session.close(code, reason);
+		}
+
 }

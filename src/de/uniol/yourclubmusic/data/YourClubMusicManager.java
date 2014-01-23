@@ -4,6 +4,7 @@ import java.util.HashMap;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 
 
@@ -19,7 +20,8 @@ public class YourClubMusicManager {
 		System.out.println("init YourClubMusicManager");	
 		mapClientStation= new HashMap<YourClubMusicWebSocket,Station>();
 		stations= new HashMap<String,Station>();
-		stations.put("Amadeus", new Station("Amadeus", 53.143450, 8.214552,true));
+		stations.put("Amadeus", new Station("Amadeus", 53.143450, 8.214552,true,50));
+		stations.put("Fun Factory", new Station("Fun Factory", 52.891579, 8.425859,true,1000));
 	}
 	
 	public static YourClubMusicManager getInstance(){
@@ -28,16 +30,37 @@ public class YourClubMusicManager {
 	}
 
 	public void receiveMessageFromClient(YourClubMusicWebSocket yourClubMusicWebSocket, String msg) {
-		String station=JsonObject.readFrom(msg).get("station").asString();
-		System.out.println("Received message for station "+station);
-		if(stations.containsKey(station)){
-			//send message to station
-			if(!mapClientStation.containsKey(yourClubMusicWebSocket)){
-				mapClientStation.put(yourClubMusicWebSocket, stations.get(station));
-				mapClientStation.get(yourClubMusicWebSocket).registerClient(yourClubMusicWebSocket);
+		JsonObject mainObject=JsonObject.readFrom(msg);
+		if(mainObject.get("station")!=null){
+			String station=mainObject.get("station").asString();
+			System.out.println("Received message for station "+station);
+			if(stations.containsKey(station)){
+				//send message to station
+				if(!mapClientStation.containsKey(yourClubMusicWebSocket)){
+					mapClientStation.put(yourClubMusicWebSocket, stations.get(station));
+					mapClientStation.get(yourClubMusicWebSocket).registerClient(yourClubMusicWebSocket);
+				}
+				mapClientStation.get(yourClubMusicWebSocket).receiveMessageFromClient(yourClubMusicWebSocket, msg);	
 			}
-			mapClientStation.get(yourClubMusicWebSocket).receiveMessageFromClient(yourClubMusicWebSocket, msg);	
-		}
+		}else if(mainObject.get("location")!=null){
+			//send list of clubs to client
+			if(!mapClientStation.containsKey(yourClubMusicWebSocket)){
+				JsonObject object= new JsonObject();
+				JsonArray array=new JsonArray();
+				JsonValue jsonLocation= mainObject.get("location");
+				for (Station station : stations.values()) {
+					if(station.isPublic() && station.isNeighbourhood(jsonLocation)){
+						array.add(new JsonObject().add("name", station.getName()));
+					}
+					
+				}
+				object.add("stations", array);
+				yourClubMusicWebSocket.sendText(object.toString());
+				
+			}else mapClientStation.get(yourClubMusicWebSocket).receiveMessageFromClient(yourClubMusicWebSocket, msg);
+			
+			}
+		
 	}
 
 	public void unregisterClient(YourClubMusicWebSocket yourClubMusicWebSocket) {
@@ -45,22 +68,6 @@ public class YourClubMusicManager {
 			mapClientStation.get(yourClubMusicWebSocket).unregisterClient(yourClubMusicWebSocket);
 			mapClientStation.remove(yourClubMusicWebSocket);
 		}
-		
-	}
-
-	public void clientConnected(YourClubMusicWebSocket yourClubMusicWebSocket) {
-		System.out.println("sending list of stations to "+yourClubMusicWebSocket.getHostname());
-		JsonObject object= new JsonObject();
-		JsonArray array=new JsonArray();
-		for (Station station : stations.values()) {
-			if(station.isPublic()){
-				array.add(new JsonObject().add("name", station.getName()));
-			}
-			
-		}
-		object.add("stations", array);
-		yourClubMusicWebSocket.sendText(object.toString());
-		
 		
 	}
 	
