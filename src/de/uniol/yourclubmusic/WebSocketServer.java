@@ -14,7 +14,7 @@ import de.uniol.yourclubmusic.servlet.YourClubMusicWebSocket;
 
 public class WebSocketServer {
 	    private Server server;
-	    private static int port=8008;
+	    private static int port=1988;
 	    private List<Handler> webSocketHandlerList = new ArrayList<>();
 
 	    public static void main(String[] args) throws Exception {

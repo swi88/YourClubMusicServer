@@ -67,6 +67,8 @@ public class Station {
 				
 			}
 		}
+		//decremt total votes
+		totalVotes-=mapClientGenre.get(socket).size();
 		mapClientGenre.remove(socket);
 		socket.disconnect(1000, "Club verlassen");
 		updateClients();
@@ -76,14 +78,16 @@ public class Station {
 		System.out.println("Message from client:"+msg);
 		//JsonArray jsonArray = JsonArray.readFrom( msg );
 		JsonObject object= new JsonObject().readFrom(msg);
+		JsonValue jsonLocation= object.get("location");
+		if(jsonLocation!=null && jsonLocation.isArray()){
+			receiveLocation(socket,jsonLocation);
+			}
+		//client kicked out by out of neighbourhood
+		if(!mapClientGenre.containsKey(socket)) return;
 		//get genres
 		JsonValue jsonGenres= object.get("genres");
 		if(jsonGenres!=null && jsonGenres.isArray()){
 			receiveGenres(socket,jsonGenres);
-			}
-		JsonValue jsonLocation= object.get("location");
-		if(jsonLocation!=null && jsonLocation.isArray()){
-			receiveLocation(socket,jsonLocation);
 			}
 		}
 
@@ -95,6 +99,7 @@ public class Station {
 		
 	}
 	private synchronized void receiveGenres(YourClubMusicWebSocket socket, JsonValue jsonGenres) {
+		totalVotes-= mapClientGenre.get(socket).size();
 		ArrayList<String> genresNew= new ArrayList<>();
 		for (JsonValue jsonValue : (JsonArray)jsonGenres) {
 			if(jsonValue.isObject()){
@@ -112,7 +117,6 @@ public class Station {
 		ArrayList<String> unvoted= (ArrayList<String>) mapClientGenre.get(socket).clone();
 		unvoted.removeAll(genresNew);
 		//decrement
-		totalVotes-=unvoted.size();
 		for (String genre : unvoted) {
 			Genre g=genres.get(genre);
 			g.decrementVotings();
