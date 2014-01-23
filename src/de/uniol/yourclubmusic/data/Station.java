@@ -56,7 +56,7 @@ public class Station {
 			updateClients();
 		}
 	}
-	public synchronized void unregisterClient(YourClubMusicWebSocket socket){
+	public synchronized void unregisterClient(YourClubMusicWebSocket socket,boolean isConnected){
 		//allready unregistered (from neighborhood kickout)
 		if(!mapClientGenre.containsKey(socket)) return;
 		if(!mapClientGenre.get(socket).isEmpty()){
@@ -70,7 +70,8 @@ public class Station {
 		//decremt total votes
 		totalVotes-=mapClientGenre.get(socket).size();
 		mapClientGenre.remove(socket);
-		socket.disconnect(1000, "Club verlassen");
+		if(!isConnected)
+			socket.disconnect(1000, "Club verlassen");
 		updateClients();
 		
 	}
@@ -94,7 +95,7 @@ public class Station {
 	private synchronized void receiveLocation(YourClubMusicWebSocket socket,
 			JsonValue jsonLocation) {
 		if(!isNeighbourhood(jsonLocation)){
-			unregisterClient(socket);
+			unregisterClient(socket,false);
 		}
 		
 	}
