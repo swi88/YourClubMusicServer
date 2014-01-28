@@ -1,9 +1,6 @@
 package de.uniol.yourclubmusic.data;
 
 import java.util.HashMap;
-
-import org.eclipse.jetty.websocket.api.Session;
-
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
@@ -34,7 +31,6 @@ public class YourClubMusicManager {
 
 	public void receiveMessageFromClient(YourClubMusicWebSocket yourClubMusicWebSocket, String msg) {
 		JsonObject mainObject=JsonObject.readFrom(msg);
-		System.out.println(mapClientStation.containsKey(yourClubMusicWebSocket)+" "+mapClientStation.size());
 		if(mainObject.get("station")!=null){
 			String station=mainObject.get("station").asString();
 			System.out.println("Received message for station "+station);
@@ -68,9 +64,10 @@ public class YourClubMusicManager {
 				object.add("stations", array);
 				yourClubMusicWebSocket.sendText(object.toString());
 				
-			}else mapClientStation.get(yourClubMusicWebSocket).receiveMessageFromClient(yourClubMusicWebSocket, msg);
-			
-		
+			}else if(mainObject.get("keepAlive")!=null){
+				System.out.println("get keep alive from "+yourClubMusicWebSocket.getHostname()+", which is connected to "+ mapClientStation.get(yourClubMusicWebSocket).getName());
+			}else if(mapClientStation.containsKey(yourClubMusicWebSocket))
+				mapClientStation.get(yourClubMusicWebSocket).receiveMessageFromClient(yourClubMusicWebSocket, msg);
 	}
 
 	public void unregisterClient(YourClubMusicWebSocket yourClubMusicWebSocket) {

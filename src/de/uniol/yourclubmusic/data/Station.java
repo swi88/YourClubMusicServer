@@ -78,7 +78,7 @@ public class Station {
 	public synchronized void receiveMessageFromClient(YourClubMusicWebSocket socket,String msg) {
 		System.out.println("Message from client:"+msg);
 		//JsonArray jsonArray = JsonArray.readFrom( msg );
-		JsonObject object= new JsonObject().readFrom(msg);
+		JsonObject object= JsonObject.readFrom(msg);
 		JsonValue jsonLocation= object.get("location");
 		if(jsonLocation!=null && jsonLocation.isArray()){
 			receiveLocation(socket,jsonLocation);
